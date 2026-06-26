@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
-import DownloaderForm from '@/components/DownloaderForm';
-import MediaResult from '@/components/MediaResult';
-import HistoryPanel from '@/components/HistoryPanel';
+
+import DownloaderForm from '../components/DownloaderForm';
+import MediaResult from '../components/MediaResult';
+import HistoryPanel from '../components/HistoryPanel';
+
 import { PinterestMediaResponse, HistoryItem } from '@/types';
 
 export default function Page() {
