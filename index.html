@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="bn" class="dark">
 <head>
@@ -66,7 +67,7 @@
     <!-- ইনপুট ও ফর্ম সেকশন -->
     <div class="w-full max-w-3xl mx-auto text-center my-4">
       <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/30 text-pinterest text-xs font-semibold mb-5">
-        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> প্রো-ইঞ্জিন v3.0 (একক ফাইল সংস্করণ)
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> প্রো-ইঞ্জিন v3.1 (অটো-ব্যাকআপ সার্ভার যুক্ত)
       </div>
       <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-gray-950 dark:text-white mb-4">
         পছন্দের পিন্টারেস্ট মিডিয়া <span class="text-pinterest">ডাউনলোড করুন</span>
@@ -114,7 +115,7 @@
     </div>
 
     <!-- এরর নোটিফিকেশন -->
-    <div id="errorBox" class="hidden w-full max-w-3xl mx-auto my-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400 text-sm font-semibold shadow-sm text-center">
+    <div id="errorBox" class="hidden w-full max-w-3xl mx-auto my-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400 text-sm font-semibold shadow-sm text-center animate-fade-in">
       🛑 <span id="errorText">কিছু একটা ভুল হয়েছে! আবার চেষ্টা করুন।</span>
     </div>
 
@@ -282,7 +283,6 @@
     async function triggerDownload(url, filename) {
       showToast('ডাউনলোড শুরু হচ্ছে...');
       try {
-        // ডাইরেক্ট ব্রাউজার ফেচ ব্যাকআপ যদি কর্স পলিসি অ্যালাউ করে
         const response = await fetch(url);
         if (response.ok) {
           const blob = await response.blob();
@@ -298,27 +298,50 @@
           return;
         }
       } catch (err) {
-        // ব্যাকআপ সমাধান: যদি কোনো সিকিউরিটি ব্লক আসে তবে নতুন ট্যাবে সরাসরি ওপেন করবে
         window.open(url, '_blank');
         showToast('নতুন ট্যাবে ফাইল ওপেন হয়েছে, রাইট ক্লিক করে সেভ করুন।');
       }
     }
 
-    // পিন্টারেস্ট থেকে ডেটা স্ক্র্যাপ করার মূল জাভাস্ক্রিপ্ট ইঞ্জিন (CORS প্রক্সি ব্যবহার করে)
+    // মাল্টি-প্রক্সি রিড করার ফাংশন (একটি ব্যর্থ হলে অন্যটি চেষ্টা করবে)
+    async function fetchWithFallback(targetUrl) {
+      // ৩টি ভিন্ন ভিন্ন টপ লেভেল প্রক্সি প্রোভাইডার
+      const proxies = [
+        (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        (url) => `https://thingproxy.freeboard.io/fetch/${url}`
+      ];
+
+      let lastError = null;
+      for (let i = 0; i < proxies.length; i++) {
+        try {
+          const proxyUrl = proxies[i](targetUrl);
+          console.log(`সার্ভার ${i + 1} চেষ্টা করা হচ্ছে...`);
+          const res = await fetch(proxyUrl);
+          if (!res.ok) throw new Error(`Status ${res.status}`);
+          
+          const html = await res.text();
+          if (html && html.length > 200) {
+            console.log(`সার্ভার ${i + 1} সফল হয়েছে!`);
+            return html; // সফলভাবে HTML রিটার্ন করবে
+          }
+        } catch (err) {
+          console.warn(`সার্ভার ${i + 1} ব্যর্থ হয়েছে:`, err);
+          lastError = err;
+        }
+      }
+      throw new Error("সবগুলো ব্যাকআপ সার্ভার সাময়িকভাবে ব্যস্ত আছে। অনুগ্রহ করে একটু পর আবার চেষ্টা করুন বা অন্য লিংক ট্রাই করুন।");
+    }
+
+    // পিন্টারেস্ট থেকে ডেটা স্ক্র্যাপ করার মূল জাভাস্ক্রিপ্ট ইঞ্জিন
     async function fetchPinterestMedia(targetUrl) {
-      // লিংকটি ফরম্যাট করা
       let cleanUrl = targetUrl.trim();
       if (!/^https?:\/\//i.test(cleanUrl)) {
         cleanUrl = 'https://' + cleanUrl;
       }
 
-      // Vercel / Cloudflare এর মতো গ্লোবাল প্রক্সি ব্যবহার করে ডেটা স্ক্র্যাপ করা
-      const corsProxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(cleanUrl);
-      const res = await fetch(corsProxy);
-      
-      if (!res.ok) throw new Error('সার্ভার থেকে রেসপন্স পাওয়া যায়নি।');
-      const data = await res.json();
-      const html = data.contents;
+      // মাল্টি-সার্ভার মেথড দিয়ে HTML নিয়ে আসা
+      const html = await fetchWithFallback(cleanUrl);
 
       // স্ক্র্যাপার ইঞ্জিনের রেগুলার এক্সপ্রেশন
       const scriptRegex = /<script id="__PWS_DATA__" type="application\/json">([\s\S]*?)<\/script>/;
@@ -330,45 +353,49 @@
       let previewImage = '';
 
       if (match && match[1]) {
-        const jsonData = JSON.parse(match[1]);
-        const pinData = jsonData?.props?.initialState?.pins;
-        const pinId = Object.keys(pinData || {})[0];
-        const details = pinData?.[pinId];
+        try {
+          const jsonData = JSON.parse(match[1]);
+          const pinData = jsonData?.props?.initialState?.pins;
+          const pinId = Object.keys(pinData || {})[0];
+          const details = pinData?.[pinId];
 
-        if (details) {
-          title = details.title || details.description || 'Pinterest Media';
-          
-          if (details.videos?.video_list) {
-            mediaType = 'video';
-            const vList = details.videos.video_list;
-            if (vList.V_720P?.url) {
-              variants.push({ url: vList.V_720P.url, quality: 'Full HD', resolution: '720p', format: 'mp4' });
-            }
-            if (vList.V_540P?.url) {
-              variants.push({ url: vList.V_540P.url, quality: 'HD', resolution: '540p', format: 'mp4' });
-            }
-            previewImage = details.images?.['736x']?.url || details.images?.originals?.url || '';
-          } else if (details.images) {
-            previewImage = details.images.originals?.url || '';
-            const isGif = previewImage.toLowerCase().endsWith('.gif');
-            mediaType = isGif ? 'gif' : 'image';
+          if (details) {
+            title = details.title || details.description || 'Pinterest Media';
+            
+            if (details.videos?.video_list) {
+              mediaType = 'video';
+              const vList = details.videos.video_list;
+              if (vList.V_720P?.url) {
+                variants.push({ url: vList.V_720P.url, quality: 'Full HD', resolution: '720p', format: 'mp4' });
+              }
+              if (vList.V_540P?.url) {
+                variants.push({ url: vList.V_540P.url, quality: 'HD', resolution: '540p', format: 'mp4' });
+              }
+              previewImage = details.images?.['736x']?.url || details.images?.originals?.url || '';
+            } else if (details.images) {
+              previewImage = details.images.originals?.url || '';
+              const isGif = previewImage.toLowerCase().endsWith('.gif');
+              mediaType = isGif ? 'gif' : 'image';
 
-            variants.push({
-              url: previewImage,
-              quality: 'Original',
-              resolution: `${details.images.originals?.width || 'Auto'}x${details.images.originals?.height || 'Auto'}`,
-              format: isGif ? 'gif' : 'jpg'
-            });
-
-            if (details.images['736x']?.url) {
               variants.push({
-                url: details.images['736x'].url,
-                quality: 'Standard',
-                resolution: `${details.images['736x'].width}x${details.images['736x'].height}`,
-                format: 'jpg'
+                url: previewImage,
+                quality: 'Original',
+                resolution: `${details.images.originals?.width || 'Auto'}x${details.images.originals?.height || 'Auto'}`,
+                format: isGif ? 'gif' : 'jpg'
               });
+
+              if (details.images['736x']?.url) {
+                variants.push({
+                  url: details.images['736x'].url,
+                  quality: 'Standard',
+                  resolution: `${details.images['736x'].width}x${details.images['736x'].height}`,
+                  format: 'jpg'
+                });
+              }
             }
           }
+        } catch (e) {
+          console.warn("JSON পার্সিং ব্যর্থ হয়েছে, অল্টারনেটিভ মেথড ব্যবহার করা হচ্ছে।");
         }
       }
 
@@ -476,7 +503,6 @@
         // ক্লিক ইভেন্ট রেজোলিউশন চেঞ্জ করার জন্য
         card.addEventListener('click', () => {
           selectVariant(index);
-          // সিলেক্টেড স্টাইল আপডেট
           document.querySelectorAll('#variantsList > div').forEach((d, idx) => {
             if (idx === index) {
               d.className = 'p-3 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between border-pinterest bg-red-50/40 dark:bg-pinterest/5 ring-1 ring-pinterest';
@@ -491,8 +517,6 @@
 
       // ডিফল্ট প্রথম ভেরিয়েন্ট সিলেক্ট করা
       selectVariant(0);
-      
-      // রেন্ডার করা আইকনগুলো রিস্টার্ট করা
       lucide.createIcons();
 
       // কপি বাটন ইভেন্ট লিসেনার
@@ -549,7 +573,7 @@
           mediaType: data.mediaType,
           thumbnail: data.previewImage
         });
-        sessionHistory = sessionHistory.slice(0, 4); // সর্বোচ্চ ৪টি রাখা হবে
+        sessionHistory = sessionHistory.slice(0, 4);
         renderHistory();
       }
     }
