@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="bn" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PinStream - প্রিমিয়াম পিন্টারেস্ট মিডিয়া ডাউনলোডার</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            pinterest: {
+              DEFAULT: '#E60023',
+              hover: '#AD001D',
+              dark: '#111111'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons for premium visual feeling -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Hind Siliguri', sans-serif;
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 min-h-screen flex flex-col transition-colors duration-300">
+
+  <!-- নেভিগেশন বার -->
+  <nav class="border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md sticky top-0 z-50 transition-colors">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5 font-bold text-xl tracking-tight text-gray-900 dark:text-white">
+        <div class="bg-pinterest p-2 rounded-xl text-white shadow-sm flex items-center justify-center">
+          <i data-lucide="download-cloud" class="w-5 h-5"></i>
+        </div>
+        <span>Pin<span class="text-pinterest">Stream</span></span>
+      </div>
+      <button 
+        id="themeToggle"
+        class="p-2.5 rounded-xl border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-all text-gray-600 dark:text-zinc-400"
+        aria-label="থিম পরিবর্তন করুন"
+      >
+        <i data-lucide="sun" id="sunIcon" class="w-5 h-5 hidden"></i>
+        <i data-lucide="moon" id="moonIcon" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- মূল কন্টেন্ট এরিয়া -->
+  <main class="flex-grow py-12 max-w-6xl mx-auto px-4 w-full">
+    
+    <!-- ইনপুট ও ফর্ম সেকশন -->
+    <div class="w-full max-w-3xl mx-auto text-center my-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/30 text-pinterest text-xs font-semibold mb-5">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> প্রো-ইঞ্জিন v3.0 (একক ফাইল সংস্করণ)
+      </div>
+      <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-gray-950 dark:text-white mb-4">
+        পছন্দের পিন্টারেস্ট মিডিয়া <span class="text-pinterest">ডাউনলোড করুন</span>
+      </h1>
+      <p class="text-gray-600 dark:text-zinc-400 text-sm md:text-base max-w-xl mx-auto mb-8 leading-relaxed">
+        পাবলিক পিন-লিংকটি নিচে পেস্ট করুন এবং এক ক্লিকেই সর্বোচ্চ রেজোলিউশনে ছবি, ভিডিও অথবা অ্যানিমেটেড GIF ডাউনলোড করে নিন।
+      </p>
+
+      <!-- ফর্ম ইনপুট -->
+      <form id="fetchForm" class="relative group p-2 bg-white dark:bg-zinc-950 border-2 border-gray-200 dark:border-zinc-800 focus-within:border-pinterest dark:focus-within:border-pinterest rounded-2xl shadow-xl transition-all duration-300">
+        <div class="flex flex-col md:flex-row items-center gap-2">
+          <div class="relative w-full flex items-center pl-2">
+            <input
+              id="pinUrl"
+              type="text"
+              required
+              placeholder="pinterest.com/pin/... অথবা pin.it/ লিংকটি দিন"
+              class="w-full bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 py-3.5 px-3 focus:outline-none text-base font-medium"
+            />
+            <button
+              type="button"
+              id="pasteBtn"
+              class="absolute right-3 px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-600 dark:text-zinc-300 transition-colors flex items-center gap-1.5"
+            >
+              <i data-lucide="clipboard" class="w-3.5 h-3.5"></i> পেস্ট করুন
+            </button>
+          </div>
+          
+          <button
+            type="submit"
+            id="submitBtn"
+            class="w-full md:w-auto px-7 py-4 rounded-xl font-bold text-white bg-pinterest hover:bg-pinterest-hover disabled:bg-gray-300 dark:disabled:bg-zinc-800 disabled:text-gray-500 transition-all shadow-md flex items-center justify-center gap-2 whitespace-nowrap"
+          >
+            <span id="btnText" class="flex items-center gap-2">লিংক খুঁজুন <i data-lucide="arrow-right" class="w-4 h-4"></i></span>
+            <span id="btnLoader" class="hidden flex items-center gap-2">
+              <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              অপেক্ষা করুন...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- এরর নোটিফিকেশন -->
+    <div id="errorBox" class="hidden w-full max-w-3xl mx-auto my-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400 text-sm font-semibold shadow-sm text-center">
+      🛑 <span id="errorText">কিছু একটা ভুল হয়েছে! আবার চেষ্টা করুন।</span>
+    </div>
+
+    <!-- মিডিয়া রেজাল্ট প্রিভিউ সেকশন -->
+    <div id="resultCard" class="hidden w-full max-w-4xl mx-auto bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 md:p-8 shadow-2xl transition-all animate-fade-in mb-12">
+      <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-zinc-800">
+        <div class="flex items-center gap-2.5">
+          <span id="mediaBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 uppercase">
+            IMAGE
+          </span>
+          <span id="fallbackNotice" class="hidden text-amber-500 text-xs font-medium">⚠️ অল্টারনেটিভ মোড সক্রিয়</span>
+        </div>
+        <button id="resetBtn" class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 p-2 text-sm flex items-center gap-1.5 font-medium transition-colors">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i> রিসেট
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- বামদিকের মিডিয়া বক্স -->
+        <div class="relative group overflow-hidden bg-gray-50 dark:bg-zinc-950 rounded-2xl border border-gray-100 dark:border-zinc-800 flex items-center justify-center min-h-[320px]">
+          <img id="imagePreview" src="" alt="প্রিভিউ" class="max-h-[480px] object-contain rounded-2xl group-hover:scale-[1.01] transition-transform duration-300" />
+          <video id="videoPreview" controls class="hidden max-h-[480px] w-full rounded-2xl object-contain shadow-sm"></video>
+        </div>
+
+        <!-- ডানদিকের মেটাডাটা ও ডাউনলোড প্যানেল -->
+        <div class="flex flex-col justify-between">
+          <div>
+            <h2 id="mediaTitle" class="text-xl font-bold text-gray-900 dark:text-white line-clamp-2 mb-2 leading-snug">শিরোনাম পাওয়া যায়নি</h2>
+            <button id="copyOriginalBtn" class="text-xs text-gray-400 hover:text-pinterest mb-6 inline-flex items-center gap-1.5 transition-colors">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> মূল পিন লিংক কপি করুন
+            </button>
+
+            <!-- রেজোলিউশন লিস্ট -->
+            <div class="mb-6">
+              <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-2.5">উপলব্ধ রেজোলিউশনসমূহ</label>
+              <div id="variantsList" class="space-y-2">
+                <!-- ডাইনামিকালি যুক্ত হবে -->
+              </div>
+            </div>
+          </div>
+
+          <!-- বড় অ্যাকশন বাটন -->
+          <div class="space-y-2.5 mt-4">
+            <button id="mainDownloadBtn" class="w-full bg-zinc-950 hover:bg-zinc-900 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 font-bold py-4 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-base">
+              <i data-lucide="download" class="w-5 h-5"></i> সরাসরি ডাউনলোড করুন
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- সাম্প্রতিক সার্চ বা হিস্টোরি প্যানেল -->
+    <div id="historySection" class="hidden w-full max-w-3xl mx-auto mt-12 border-t border-gray-200 dark:border-zinc-800 pt-8 px-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+          <i data-lucide="history" class="w-4 h-4"></i> শেষবার খোঁজা ফাইলসমূহ
+        </h3>
+        <button id="clearHistoryBtn" class="text-xs text-red-500 hover:text-red-600 flex items-center gap-1 font-medium transition-colors">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> হিস্টোরি মুছুন
+        </button>
+      </div>
+      <div id="historyGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- ডাইনামিকালি যুক্ত হবে -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ফুটার এবং ডিসক্লেইমার -->
+  <footer class="border-t border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 text-gray-400 dark:text-zinc-600 transition-colors mt-auto">
+    <div class="max-w-6xl mx-auto px-4 py-8 text-center text-xs space-y-3">
+      <p class="font-medium text-gray-500 dark:text-zinc-400">
+        ডিসক্লেইমার: এই টুলটি শুধুমাত্র শিক্ষামূলক উদ্দেশ্যে এবং পাবলিক কন্টেন্ট শেয়ার করার জন্য তৈরি করা হয়েছে।
+      </p>
+      <p class="max-w-2xl mx-auto leading-relaxed">
+        আমরা আমাদের সার্ভারে কোনো ব্যবহারকারীর ডেটা বা কপিরাইটযুক্ত মিডিয়া জমা রাখি না। পিন্টারেস্টের টার্মস অফ সার্ভিস এবং কপিরাইট পলিসি রক্ষা করার দায়িত্ব সম্পূর্ণ ব্যবহারকারীর।
+      </p>
+      <p>© 2026 PinStream সিস্টেমস। ওমরের জন্য স্পেশাল এডিশন।</p>
+    </div>
+  </footer>
+
+  <!-- টোস্ট নোটিফিকেশন সিস্টেম -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+    <i data-lucide="check-circle" class="text-green-500 w-5 h-5"></i>
+    <span id="toastMessage" class="text-xs font-semibold">কপি করা হয়েছে!</span>
+  </div>
+
+  <!-- সম্পূর্ণ স্ক্র্যাপার ও ফ্রন্টএন্ড স্ক্রিপ্ট লজিক -->
+  <script>
+    // ডার্ক মোড এবং থিম হ্যান্ডলিং
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const sunIcon = document.getElementById('sunIcon');
+    const moonIcon = document.getElementById('moonIcon');
+
+    function applyTheme() {
+      if (document.documentElement.classList.contains('dark')) {
+        sunIcon.classList.remove('hidden');
+        moonIcon.classList.add('hidden');
+      } else {
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
+      }
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      applyTheme();
+    });
+
+    // ইনিশিয়াল থিম সেটআপ
+    applyTheme();
+
+    // গ্লোবাল ভেরিয়েবলসমূহ
+    let currentData = null;
+    let selectedVariantUrl = '';
+    let selectedVariantExt = 'jpg';
+    let sessionHistory = [];
+
+    // এলিমেন্টসমূহ
+    const fetchForm = document.getElementById('fetchForm');
+    const pinUrlInput = document.getElementById('pinUrl');
+    const pasteBtn = document.getElementById('pasteBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnLoader = document.getElementById('btnLoader');
+    const errorBox = document.getElementById('errorBox');
+    const errorText = document.getElementById('errorText');
+    const resultCard = document.getElementById('resultCard');
+    const imagePreview = document.getElementById('imagePreview');
+    const videoPreview = document.getElementById('videoPreview');
+    const mediaBadge = document.getElementById('mediaBadge');
+    const mediaTitle = document.getElementById('mediaTitle');
+    const fallbackNotice = document.getElementById('fallbackNotice');
+    const copyOriginalBtn = document.getElementById('copyOriginalBtn');
+    const variantsList = document.getElementById('variantsList');
+    const mainDownloadBtn = document.getElementById('mainDownloadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const historySection = document.getElementById('historySection');
+    const historyGrid = document.getElementById('historyGrid');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+
+    // টোস্ট পপআপ ফাংশন
+    function showToast(message) {
+      toastMessage.innerText = message;
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 2500);
+    }
+
+    // ক্লিপবোর্ড পেস্ট বাটন
+    pasteBtn.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        pinUrlInput.value = text;
+        showToast('ক্লিপবোর্ড থেকে লিংক পেস্ট করা হয়েছে!');
+      } catch {
+        showToast('ক্লিপবোর্ড অ্যাক্সেস করা সম্ভব হয়নি।');
+      }
+    });
+
+    // ব্রাউজার রুলস মেনে ফাইল ডাউনলোড হ্যান্ডলার (CORS বাইপাস সহ)
+    async function triggerDownload(url, filename) {
+      showToast('ডাউনলোড শুরু হচ্ছে...');
+      try {
+        // ডাইরেক্ট ব্রাউজার ফেচ ব্যাকআপ যদি কর্স পলিসি অ্যালাউ করে
+        const response = await fetch(url);
+        if (response.ok) {
+          const blob = await response.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(blobUrl);
+          showToast('ডাউনলোড সম্পন্ন হয়েছে!');
+          return;
+        }
+      } catch (err) {
+        // ব্যাকআপ সমাধান: যদি কোনো সিকিউরিটি ব্লক আসে তবে নতুন ট্যাবে সরাসরি ওপেন করবে
+        window.open(url, '_blank');
+        showToast('নতুন ট্যাবে ফাইল ওপেন হয়েছে, রাইট ক্লিক করে সেভ করুন।');
+      }
+    }
+
+    // পিন্টারেস্ট থেকে ডেটা স্ক্র্যাপ করার মূল জাভাস্ক্রিপ্ট ইঞ্জিন (CORS প্রক্সি ব্যবহার করে)
+    async function fetchPinterestMedia(targetUrl) {
+      // লিংকটি ফরম্যাট করা
+      let cleanUrl = targetUrl.trim();
+      if (!/^https?:\/\//i.test(cleanUrl)) {
+        cleanUrl = 'https://' + cleanUrl;
+      }
+
+      // Vercel / Cloudflare এর মতো গ্লোবাল প্রক্সি ব্যবহার করে ডেটা স্ক্র্যাপ করা
+      const corsProxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(cleanUrl);
+      const res = await fetch(corsProxy);
+      
+      if (!res.ok) throw new Error('সার্ভার থেকে রেসপন্স পাওয়া যায়নি।');
+      const data = await res.json();
+      const html = data.contents;
+
+      // স্ক্র্যাপার ইঞ্জিনের রেগুলার এক্সপ্রেশন
+      const scriptRegex = /<script id="__PWS_DATA__" type="application\/json">([\s\S]*?)<\/script>/;
+      const match = html.match(scriptRegex);
+      
+      let title = 'Pinterest Media';
+      let mediaType = 'image';
+      let variants = [];
+      let previewImage = '';
+
+      if (match && match[1]) {
+        const jsonData = JSON.parse(match[1]);
+        const pinData = jsonData?.props?.initialState?.pins;
+        const pinId = Object.keys(pinData || {})[0];
+        const details = pinData?.[pinId];
+
+        if (details) {
+          title = details.title || details.description || 'Pinterest Media';
+          
+          if (details.videos?.video_list) {
+            mediaType = 'video';
+            const vList = details.videos.video_list;
+            if (vList.V_720P?.url) {
+              variants.push({ url: vList.V_720P.url, quality: 'Full HD', resolution: '720p', format: 'mp4' });
+            }
+            if (vList.V_540P?.url) {
+              variants.push({ url: vList.V_540P.url, quality: 'HD', resolution: '540p', format: 'mp4' });
+            }
+            previewImage = details.images?.['736x']?.url || details.images?.originals?.url || '';
+          } else if (details.images) {
+            previewImage = details.images.originals?.url || '';
+            const isGif = previewImage.toLowerCase().endsWith('.gif');
+            mediaType = isGif ? 'gif' : 'image';
+
+            variants.push({
+              url: previewImage,
+              quality: 'Original',
+              resolution: `${details.images.originals?.width || 'Auto'}x${details.images.originals?.height || 'Auto'}`,
+              format: isGif ? 'gif' : 'jpg'
+            });
+
+            if (details.images['736x']?.url) {
+              variants.push({
+                url: details.images['736x'].url,
+                quality: 'Standard',
+                resolution: `${details.images['736x'].width}x${details.images['736x'].height}`,
+                format: 'jpg'
+              });
+            }
+          }
+        }
+      }
+
+      // অল্টারনেটিভ ওপেন-গ্রাফ (OpenGraph Meta Tags) ডিটেক্টর
+      if (variants.length === 0) {
+        const ogVideo = html.match(/<meta property="og:video" content="([^"]+)"/)?.[1];
+        const ogImage = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1];
+        const ogTitle = html.match(/<meta property="og:title" content="([^"]+)"/)?.[1];
+
+        if (ogTitle) title = ogTitle;
+        if (ogImage) previewImage = ogImage;
+
+        if (ogVideo) {
+          mediaType = 'video';
+          variants.push({ url: ogVideo.replace(/&amp;/g, '&'), quality: 'Original', resolution: '720p', format: 'mp4' });
+        } else if (ogImage) {
+          mediaType = ogImage.toLowerCase().endsWith('.gif') ? 'gif' : 'image';
+          variants.push({ url: ogImage.replace(/&amp;/g, '&'), quality: 'Original', resolution: 'Original', format: mediaType === 'gif' ? 'gif' : 'jpg' });
+        }
+      }
+
+      if (variants.length === 0) {
+        throw new Error('এই পিন থেকে কোনো মিডিয়া ডাউনলোড লিংক পাওয়া যায়নি। পিনটি পাবলিক কিনা নিশ্চিত করুন।');
+      }
+
+      return {
+        success: true,
+        originalUrl: targetUrl,
+        mediaType,
+        title,
+        previewImage,
+        variants
+      };
+    }
+
+    // ফর্ম সাবমিট হ্যান্ডলার
+    fetchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const targetUrl = pinUrlInput.value.trim();
+      if (!targetUrl) return;
+
+      submitBtn.disabled = true;
+      btnText.classList.add('hidden');
+      btnLoader.classList.remove('hidden');
+      errorBox.classList.add('hidden');
+      resultCard.classList.add('hidden');
+
+      try {
+        const result = await fetchPinterestMedia(targetUrl);
+        displayMediaResult(result);
+        saveToHistory(result);
+      } catch (err) {
+        errorText.innerText = err.message || 'লিংকটি লোড করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেক করুন।';
+        errorBox.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        btnText.classList.remove('hidden');
+        btnLoader.classList.add('hidden');
+      }
+    });
+
+    // স্ক্রিনে ডেটা ও প্রিভিউ সেট করার ফাংশন
+    function displayMediaResult(data) {
+      currentData = data;
+      mediaTitle.innerText = data.title;
+      mediaBadge.innerText = data.mediaType;
+
+      // ভিডিও বা ছবি প্রিভিউ কন্ট্রোল করা
+      if (data.mediaType === 'video') {
+        imagePreview.classList.add('hidden');
+        videoPreview.classList.remove('hidden');
+        videoPreview.src = data.variants[0].url;
+        videoPreview.poster = data.previewImage;
+      } else {
+        videoPreview.classList.add('hidden');
+        imagePreview.classList.remove('hidden');
+        imagePreview.src = data.previewImage;
+      }
+
+      // লিস্ট ডাইনামিকালি রেন্ডার করা
+      variantsList.innerHTML = '';
+      data.variants.forEach((variant, index) => {
+        const isBest = index === 0;
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between ${
+          index === 0 
+            ? 'border-pinterest bg-red-50/40 dark:bg-pinterest/5 ring-1 ring-pinterest' 
+            : 'border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50'
+        }`;
+        
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-sm text-gray-900 dark:text-white">${variant.resolution}</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400 uppercase tracking-tight">${variant.format}</span>
+              ${isBest ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-pinterest text-white scale-90">BEST</span>` : ''}
+            </div>
+            <p class="text-xs text-gray-400 mt-0.5">${variant.quality} কোয়ালিটি</p>
+          </div>
+          <button class="copy-url-btn p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors" data-url="${variant.url}">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+        `;
+
+        // ক্লিক ইভেন্ট রেজোলিউশন চেঞ্জ করার জন্য
+        card.addEventListener('click', () => {
+          selectVariant(index);
+          // সিলেক্টেড স্টাইল আপডেট
+          document.querySelectorAll('#variantsList > div').forEach((d, idx) => {
+            if (idx === index) {
+              d.className = 'p-3 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between border-pinterest bg-red-50/40 dark:bg-pinterest/5 ring-1 ring-pinterest';
+            } else {
+              d.className = 'p-3 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50';
+            }
+          });
+        });
+
+        variantsList.appendChild(card);
+      });
+
+      // ডিফল্ট প্রথম ভেরিয়েন্ট সিলেক্ট করা
+      selectVariant(0);
+      
+      // রেন্ডার করা আইকনগুলো রিস্টার্ট করা
+      lucide.createIcons();
+
+      // কপি বাটন ইভেন্ট লিসেনার
+      document.querySelectorAll('.copy-url-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const url = btn.getAttribute('data-url');
+          navigator.clipboard.writeText(url);
+          showToast('মিডিয়া ডাউনলোড লিংক কপি করা হয়েছে!');
+        });
+      });
+
+      resultCard.classList.remove('hidden');
+    }
+
+    // নির্দিষ্ট কোয়ালিটি সিলেক্ট করা
+    function selectVariant(index) {
+      const v = currentData.variants[index];
+      selectedVariantUrl = v.url;
+      selectedVariantExt = v.format;
+      mainDownloadBtn.innerHTML = `<i data-lucide="download" class="w-5 h-5"></i> ডাউনলোড করুন (${v.resolution})`;
+      lucide.createIcons();
+    }
+
+    // মূল ডাউনলোড বাটন ট্রিপার
+    mainDownloadBtn.addEventListener('click', () => {
+      const cleanTitle = currentData.title.replace(/[^a-z0-9]/gi, '-').toLowerCase().substring(0, 30);
+      const filename = `${cleanTitle}.${selectedVariantExt}`;
+      triggerDownload(selectedVariantUrl, filename);
+    });
+
+    // রিসেট বাটন
+    resetBtn.addEventListener('click', () => {
+      resultCard.classList.add('hidden');
+      pinUrlInput.value = '';
+      currentData = null;
+    });
+
+    // অরিজিনাল লিংক কপি বাটন
+    copyOriginalBtn.addEventListener('click', () => {
+      if (currentData) {
+        navigator.clipboard.writeText(currentData.originalUrl);
+        showToast('মূল পিন লিংক কপি করা হয়েছে!');
+      }
+    });
+
+    // সেশন হিস্টোরি ম্যানেজমেন্ট
+    function saveToHistory(data) {
+      const exists = sessionHistory.some(item => item.url === data.originalUrl);
+      if (!exists) {
+        sessionHistory.unshift({
+          title: data.title,
+          url: data.originalUrl,
+          mediaType: data.mediaType,
+          thumbnail: data.previewImage
+        });
+        sessionHistory = sessionHistory.slice(0, 4); // সর্বোচ্চ ৪টি রাখা হবে
+        renderHistory();
+      }
+    }
+
+    function renderHistory() {
+      if (sessionHistory.length === 0) {
+        historySection.classList.add('hidden');
+        return;
+      }
+
+      historyGrid.innerHTML = '';
+      sessionHistory.forEach(item => {
+        const hCard = document.createElement('div');
+        hCard.className = 'flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-pinterest dark:hover:border-pinterest/60 cursor-pointer transition-all group';
+        hCard.innerHTML = `
+          <img src="${item.thumbnail}" alt="" class="w-11 h-11 object-cover rounded-lg bg-gray-50" />
+          <div class="flex-1 min-w-0">
+            <h4 class="text-xs font-bold text-gray-800 dark:text-zinc-200 truncate group-hover:text-pinterest transition-colors">${item.title}</h4>
+            <p class="text-[10px] text-gray-400 uppercase tracking-tight font-semibold mt-0.5">${item.mediaType}</p>
+          </div>
+          <i data-lucide="arrow-up-right" class="w-4 h-4 text-gray-300 group-hover:text-pinterest transition-colors mr-1"></i>
+        `;
+
+        hCard.addEventListener('click', () => {
+          pinUrlInput.value = item.url;
+          fetchForm.dispatchEvent(new Event('submit'));
+        });
+
+        historyGrid.appendChild(hCard);
+      });
+
+      lucide.createIcons();
+      historySection.classList.remove('hidden');
+    }
+
+    // হিস্টোরি ক্লিয়ার
+    clearHistoryBtn.addEventListener('click', () => {
+      sessionHistory = [];
+      renderHistory();
+      showToast('সব হিস্টোরি মুছে ফেলা হয়েছে!');
+    });
+
+    // আইকনগুলো প্রথমবার ইনিশিয়ালাইজ করা
+    lucide.createIcons();
+  </script>
+</body>
+</html>
