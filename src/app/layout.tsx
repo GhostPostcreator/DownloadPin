@@ -1,8 +1,9 @@
-import '@/app/globals.css'; // Standard boilerplate Tailwind bindings
-import type { Metadata } from 'next';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 
+import './globals.css';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+
+import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Pinterest Media Downloader - High Quality Image & Video Downloader',
   description: 'Download public Pinterest videos, high resolution images, and GIFs in one-click.',
